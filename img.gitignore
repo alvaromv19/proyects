@@ -1,0 +1,9 @@
+# Ignorar imágenes generadas por pruebas
+*.png
+*.jpg
+
+# Ignorar carpetas de cache de Python
+__pycache__/
+
+# Ignorar variables de entorno (SEGURIDAD CRÍTICA)
+.env
