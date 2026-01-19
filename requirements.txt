@@ -8,3 +8,4 @@ facebook-business
 Pillow
 python-dotenv
 requests
+html2image
