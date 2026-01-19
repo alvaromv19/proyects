@@ -1,100 +1,46 @@
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont
-import requests
-from io import BytesIO
+from html2image import Html2Image
+import os
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Test Motor Gráfico V2", page_icon="🎨")
-st.title("🎨 Prueba de Motor Gráfico: V2 (Texto Responsive)")
+# ... (resto de tu configuración de página) ...
 
-# --- FUNCIÓN AUXILIAR: DESCARGAR FUENTE ---
-# Esto garantiza que siempre tengamos una letra bonita y GRANDE
-def conseguir_fuente(size):
-    url_fuente = "https://github.com/google/fonts/raw/main/apache/roboto/Roboto-Bold.ttf"
-    try:
-        response = requests.get(url_fuente)
-        return ImageFont.truetype(BytesIO(response.content), size)
-    except:
-        return ImageFont.load_default()
-
-# --- FUNCIÓN DEL MOTOR GRÁFICO (El Cerebro) ---
-def crear_anuncio_con_texto(url_fondo, headline_texto, cta_texto):
-    # 1. Descargar imagen
-    response = requests.get(url_fondo)
-    img = Image.open(BytesIO(response.content)).convert("RGBA")
-    width, height = img.size
-    draw = ImageDraw.Draw(img)
-
-    # 2. CALCULAR TAMAÑO DINÁMICO (Aquí está la magia)
-    # El texto será el 8% del ancho de la imagen (se adapta si la imagen es 4k o pequeña)
-    size_headline = int(width * 0.08) 
-    size_cta = int(width * 0.05)
+# --- FUNCIÓN GENERADORA PRO (HTML) ---
+def generar_ad_html(headline, cta, fondo_url, filename):
+    hti = Html2Image()
     
-    font_headline = conseguir_fuente(size_headline)
-    font_cta = conseguir_fuente(size_cta)
-
-    # 3. Dibujar Headline (Arriba)
-    text_color = (255, 255, 255)
+    # Ajustes para que funcione en Nube (Linux) y Local (Windows/Mac)
+    # Estas flags son necesarias para servidores sin pantalla gráfica
+    hti.browser_executable = "chromium" # Opcional: ajustar según entorno
     
-    # Calcular caja del texto
-    bbox = draw.textbbox((0, 0), headline_texto, font=font_headline)
-    text_w = bbox[2] - bbox[0]
-    text_h = bbox[3] - bbox[1]
+    css = """
+    body { margin: 0; padding: 0; width: 1080px; height: 1080px; 
+           background: url('""" + fondo_url + """') no-repeat center center; background-size: cover;
+           display: flex; flex-direction: column; justify-content: flex-end; align-items: center; 
+           font-family: sans-serif; }
+    .card { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); 
+            padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 100px; width: 80%; }
+    h1 { color: white; font-size: 60px; text-transform: uppercase; text-shadow: 2px 2px 4px #000; }
+    .btn { background: #ff4b4b; color: white; padding: 20px 50px; font-size: 40px; 
+           border-radius: 50px; display: inline-block; margin-top: 20px; font-weight: bold;}
+    """
     
-    x_headline = (width - text_w) / 2
-    y_headline = height * 0.15 # Un poco más abajo (15%)
-
-    # Fondo semitransparente MÁS GRANDE (padding)
-    padding = 20
-    draw.rectangle(
-        [(x_headline - padding, y_headline - padding), (x_headline + text_w + padding, y_headline + text_h + padding)],
-        fill=(0, 0, 0, 180) # Negro un poco más oscuro
-    )
-    draw.text((x_headline, y_headline), headline_texto, font=font_headline, fill=text_color)
-
-    # 4. Dibujar CTA (Abajo)
-    bbox_cta = draw.textbbox((0, 0), cta_texto, font=font_cta)
-    cta_w = bbox_cta[2] - bbox_cta[0]
-    cta_h = bbox_cta[3] - bbox_cta[1]
+    html = f"""
+    <html>
+    <style>{css}</style>
+    <body>
+        <div class="card">
+            <h1>{headline}</h1>
+            <div class="btn">{cta}</div>
+        </div>
+    </body>
+    </html>
+    """
     
-    x_cta = (width - cta_w) / 2
-    y_cta = height * 0.85
-    
-    # Botón Rojo EVO
-    padding_cta = 30
-    draw.rectangle(
-        [(x_cta - padding_cta, y_cta - padding_cta/2), (x_cta + cta_w + padding_cta, y_cta + cta_h + padding_cta/2)],
-        fill=(220, 20, 60, 255) # Un rojo más intenso
-    )
-    draw.text((x_cta, y_cta), cta_texto, font=font_cta, fill=(255, 255, 255))
+    # Generar
+    output_path = hti.screenshot(html_str=html, save_as=filename, size=(1080, 1080))
+    return output_path[0] # Retorna la ruta del archivo generado
 
-    return img
-
-# --- INTERFAZ ---
-
-st.write("Ahora descargamos la fuente 'Roboto' de Google para que se vea profesional siempre.")
-
-if st.button("⚡ Generar Tanda V2 (Texto Grande)"):
-    
-    tandas_para_generar = [
-        {
-            "fondo": "https://picsum.photos/id/3/1080/1080", # Formato cuadrado HD
-            "headline": "ESCALA A $10K USD",
-            "cta": "CLASE GRATIS ▶"
-        },
-        {
-            "fondo": "https://picsum.photos/id/180/1080/1080",
-            "headline": "STOP ADS BARATOS",
-            "cta": "VER ESTRATEGIA"
-        }
-    ]
-    
-    col1, col2 = st.columns(2)
-    cols = [col1, col2]
-
-    for i, datos in enumerate(tandas_para_generar):
-        with cols[i]:
-            with st.spinner(f"Diseñando Ad #{i+1}..."):
-                imagen_final = crear_anuncio_con_texto(datos["fondo"], datos["headline"], datos["cta"])
-                st.image(imagen_final, caption=f"Ad #{i+1}", use_container_width=True)
-                st.success("✅ ¡Ahora sí se lee!")
+# ... (luego en tu botón de Streamlit) ...
+if st.button("Generar con HTML"):
+    img_path = generar_ad_html("TITULO PRO", "COMPRAR", "https://...", "temp_ad.png")
+    st.image(img_path) # Streamlit lee el archivo generado
