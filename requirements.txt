@@ -1,0 +1,9 @@
+# --- Librerías para el Demo Interactivo ---
+streamlit
+pandas
+
+# --- Librerías para la versión Final (Descomentar luego) ---
+openai
+facebook-business
+Pillow
+python-dotenv
