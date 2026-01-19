@@ -9,6 +9,3 @@ Pillow
 python-dotenv
 requests
 html2image
-# --- Libreria parte 3
-chromium
-chromium-driver
